@@ -8,18 +8,18 @@ app.use(express.json());
 const uri = "mongodb+srv://hadiyaebrahim:Hello123@cluster0.cojugwv.mongodb.net/?retryWrites=true&w=majority";
 
 async function connectToMongoDB() {
- try {
+  try {
     const client = new MongoClient(uri, { useUnifiedTopology: true });
     let isConnected = false;
 
     await client.connect();
     isConnected = true;
 
-    const collection = client.db("BLE_Gateway").collection("devices");
+    const collection = client.db("UWB_Gateway").collection("devices");
 
     async function handlePostRequest(req, res) {
       try {
-        console.log(req.body);
+        console.log(req.query);
 
         if (!isConnected) {
           throw new Error("MongoDB client is not connected");
@@ -28,38 +28,54 @@ async function connectToMongoDB() {
         const {
           transmitterSerialNumber,
           nodeType,
-          nodeSerialNumber,
-          reads
-        } = req.body;
+          reads,
+          allCount
+        } = req.query;
 
-        if (!transmitterSerialNumber || !nodeType || !nodeSerialNumber || !reads || !Array.isArray(reads)) {
-          throw new Error("Invalid request body format");
+        if (!transmitterSerialNumber || !nodeType || !reads || !allCount) {
+          throw new Error("Invalid request query parameters");
         }
 
-        for (const read of reads) {
+        // Convert reads from a string to an array if needed
+        const parsedReads = JSON.parse(reads);
+
+        for (const read of parsedReads) {
           const {
             timeStampUTC,
             deviceUID,
-            manufacturerName
+            manufacturerName,
+            distance,
+            count
           } = read;
 
-          if (!timeStampUTC || !deviceUID || !manufacturerName) {
+          if (!timeStampUTC || !deviceUID || !manufacturerName || !distance || !count) {
             console.error("Invalid read information:", read);
-            continue; // Skip to the next iteration if the read information is incomplete
+            continue;
           }
 
           const dataWithTimestamp = {
             transmitterSerialNumber,
             nodeType,
-            nodeSerialNumber,
             timeStampUTC,
             deviceUID,
-            manufacturerName
+            manufacturerName,
+            distance,
+            count,
           };
 
           const result = await collection.insertOne(dataWithTimestamp);
           console.log("1 document inserted");
         }
+
+        // Additional data with allCount
+        const additionalData = {
+          transmitterSerialNumber,
+          nodeType,
+          allCount
+        };
+
+        const result = await collection.insertOne(additionalData);
+        console.log("Additional document inserted");
 
         res.sendStatus(200);
       } catch (err) {
@@ -71,9 +87,9 @@ async function connectToMongoDB() {
     app.post('/data', handlePostRequest);
 
     app.listen(8080, () => console.log('Server listening on port 8080'));
- } catch (err) {
+  } catch (err) {
     console.error('Failed to initialize MongoDB connection:', err);
- }
+  }
 }
 
 connectToMongoDB();
