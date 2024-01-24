@@ -49,7 +49,7 @@ const apiKeyMiddleware = (req, res, next) => {
 app.use(apiKeyMiddleware);
 
 // Route to handle the incoming data
-app.post('/handleData', async (req, res) => {
+app.post('/data', async (req, res) => {
   const data = req.body;
 
   try {
