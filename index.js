@@ -21,47 +21,67 @@ async function connectToMongoDB() {
     async function handlePostRequest(req, res) {
       try {
         console.log(req.body);
-
+    
         if (!isConnected) {
           throw new Error("MongoDB client is not connected");
         }
-
-        const { transmitterSerialNumber, nodeType, nodeSerialNumber, reads } = req.body;
-
-        if (!transmitterSerialNumber || !nodeType || !nodeSerialNumber || !reads || !Array.isArray(reads)) {
+    
+        const {
+          transmitterSerialNumber,
+          nodeType,
+          reads,
+          allCount
+        } = req.body;
+    
+        if (!transmitterSerialNumber || !nodeType || !reads || !Array.isArray(reads)) {
           throw new Error("Invalid request body format");
         }
-
+    
         for (const read of reads) {
-          const { timeStampUTC, deviceUID, manufacturerName } = read;
-
-          if (!timeStampUTC || !deviceUID || !manufacturerName) {
-            console.error("Invalid read information:", read);
-            continue; // Skip to the next iteration if the read information is incomplete
-          }
-
-          const dataWithTimestamp = {
-            transmitterSerialNumber,
-            nodeType,
-            nodeSerialNumber,
+          const {
             timeStampUTC,
             deviceUID,
             manufacturerName,
+            distance,
+            count
+          } = read;
+    
+          if (!timeStampUTC || !deviceUID || !manufacturerName || !distance || !count) {
+            console.error("Invalid read information:", read);
+            continue; // Skip to the next iteration if the read information is incomplete
+          }
+    
+          const dataWithTimestamp = {
+            transmitterSerialNumber,
+            nodeType,
+            timeStampUTC,
+            deviceUID,
+            manufacturerName,
+            distance,
+            count,
           };
-
+    
           const result = await collection.insertOne(dataWithTimestamp);
           console.log("1 document inserted");
         }
-
+    
+        // Additional data with allCount
+        const additionalData = {
+          transmitterSerialNumber,
+          nodeType,
+          allCount
+        };
+    
+        const result = await collection.insertOne(additionalData);
+        console.log("Additional document inserted");
+    
         res.sendStatus(200);
       } catch (err) {
         console.error("Error inserting documents:", err);
         res.status(500).send("Internal Server Error: " + err.message);
       }
     }
-
-    // ... (existing code for handleGetRequest remains unchanged)
-
+    
     app.post('/data', handlePostRequest);
 
     app.listen(8080, () => console.log('Server listening on port 8080'));
