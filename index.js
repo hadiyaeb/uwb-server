@@ -8,7 +8,7 @@ app.use(express.json());
 const uri = "mongodb+srv://hadiyaebrahim:Hello123@cluster0.cojugwv.mongodb.net/?retryWrites=true&w=majority";
 
 async function connectToMongoDB() {
-  try {
+ try {
     const client = new MongoClient(uri, { useUnifiedTopology: true });
     let isConnected = false;
 
@@ -28,11 +28,11 @@ async function connectToMongoDB() {
         const {
           transmitterSerialNumber,
           nodeType,
-          reads,
-          allCount
+          nodeSerialNumber,
+          reads
         } = req.body;
 
-        if (!transmitterSerialNumber || !nodeType || !reads || !Array.isArray(reads) || !allCount) {
+        if (!transmitterSerialNumber || !nodeType || !nodeSerialNumber || !reads || !Array.isArray(reads)) {
           throw new Error("Invalid request body format");
         }
 
@@ -40,12 +40,10 @@ async function connectToMongoDB() {
           const {
             timeStampUTC,
             deviceUID,
-            manufacturerName,
-            distance,
-            count
+            manufacturerName
           } = read;
 
-          if (!timeStampUTC || !deviceUID || !manufacturerName || !distance || !count) {
+          if (!timeStampUTC || !deviceUID || !manufacturerName) {
             console.error("Invalid read information:", read);
             continue; // Skip to the next iteration if the read information is incomplete
           }
@@ -53,26 +51,15 @@ async function connectToMongoDB() {
           const dataWithTimestamp = {
             transmitterSerialNumber,
             nodeType,
+            nodeSerialNumber,
             timeStampUTC,
             deviceUID,
-            manufacturerName,
-            distance,
-            count,
+            manufacturerName
           };
 
           const result = await collection.insertOne(dataWithTimestamp);
           console.log("1 document inserted");
         }
-
-        // Additional data with allCount
-        const additionalData = {
-          transmitterSerialNumber,
-          nodeType,
-          allCount
-        };
-
-        const result = await collection.insertOne(additionalData);
-        console.log("Additional document inserted");
 
         res.sendStatus(200);
       } catch (err) {
@@ -84,9 +71,9 @@ async function connectToMongoDB() {
     app.post('/data', handlePostRequest);
 
     app.listen(8080, () => console.log('Server listening on port 8080'));
-  } catch (err) {
+ } catch (err) {
     console.error('Failed to initialize MongoDB connection:', err);
-  }
+ }
 }
 
 connectToMongoDB();
